@@ -5,7 +5,7 @@ PREFIX = /usr/local
 DESTDIR = ""
 LIBDIR = lib
 
-OBJECTS = src/queue.o
+OBJECTS = src/io.o
 
 .PHONY : all
 all : lib/libuea.a
