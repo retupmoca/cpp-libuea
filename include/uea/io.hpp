@@ -1,3 +1,4 @@
+#pragma once
 #include <fmt/format.h>
 #include <vector>
 #include <string>
@@ -76,5 +77,21 @@ namespace uea {
     template<typename... Targs>
     std::vector<std::string> glob(std::string format, Targs... Fargs) {
         return glob(fmt::format(format, Fargs...));
+    }
+}
+
+namespace uea {
+    int menu(std::vector<std::string> options);
+
+    template <typename T>
+    T menu(std::vector<std::pair<T, std::string>> options) {
+        std::vector<std::string> optionNames;
+        std::transform(options.begin(), options.end(), std::back_inserter(optionNames),
+            [](auto a) { return a.second; }
+        );
+
+        int selected = menu(optionNames);
+
+        return options.at(selected).first;
     }
 }

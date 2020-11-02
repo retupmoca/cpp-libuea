@@ -65,3 +65,25 @@ namespace uea {
 
     color_t color;
 }
+
+namespace uea {
+    int menu(std::vector<std::string> options) {
+        while(true) {
+            say();
+            int i = 0;
+            for (auto &o : options) {
+                say("{}{}{}) {}", color.bold_cyan(), ++i, color.reset(), o);
+            } 
+            say();
+
+            std::string selection = input("{}Selection?{} ", color.bold_white(), color.reset());
+
+            try {
+                return std::stoi(selection) - 1;
+            }
+            catch(std::invalid_argument const &) {
+                say("Invalid option.");
+            }
+        }
+    }
+}
