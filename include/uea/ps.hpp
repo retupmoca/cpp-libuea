@@ -3,6 +3,8 @@
 #include <string>
 
 namespace uea {
-    struct spawnOptions {};
-    void spawn(std::vector<std::string> execute, spawnOptions options); 
+    struct spawn_options {
+        bool use_path = false;
+    };
+    void spawn(std::vector<std::string> execute, spawn_options options); 
 }

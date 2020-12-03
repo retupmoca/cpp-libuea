@@ -7,23 +7,29 @@
 extern char **environ;
 
 namespace uea {
-    void spawn(std::vector<std::string> execute, spawnOptions options) {
+    void spawn(std::vector<std::string> execute, spawn_options options) {
         if(execute.size() < 1)
             return;
 
-        pid_t childPid;
+        pid_t child_pid;
 
         posix_spawn_file_actions_t spawn_actions;
         posix_spawn_file_actions_init(&spawn_actions);
         posix_spawnattr_t attrs;
         posix_spawnattr_init(&attrs);
-        char ** args = new char*[execute.size()];
-        for(int i=0; i<execute.size(); ++i)
+
+        std::vector<char*> args;
+        args[execute.size()] = 0;
+        for(size_t i=0; i<execute.size(); ++i)
             args[i] = &execute[i][0];
-        int err = posix_spawn(&childPid, args[0], &spawn_actions, &attrs, args, environ);
-        delete [] args;
+
+        int err = options.use_path ?
+            posix_spawnp(&child_pid, args[0], &spawn_actions, &attrs, &args[0], environ)
+          : posix_spawn(&child_pid, args[0], &spawn_actions, &attrs, &args[0], environ);
+
+        if(err){throw "BOOM";}
 
         siginfo_t result;
-        waitid(P_PID, childPid, &result, WEXITED);
+        waitid(P_PID, child_pid, &result, WEXITED);
     }
 }
