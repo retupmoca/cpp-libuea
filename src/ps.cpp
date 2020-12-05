@@ -8,7 +8,47 @@
 extern char **environ;
 
 namespace uea {
-    pid_t  _spawn(std::vector<std::string> execute, spawn_options options, posix_spawn_file_actions_t & spawn_actions) {
+    static int _setup_subprocess_fd(
+        posix_spawn_file_actions_t &spawn_actions,
+        subprocess::spawn_options options,
+        int target_fd
+    ) {
+        subprocess::io type = target_fd == 0 ? options.stdin
+                            : target_fd == 1 ? options.stdout
+                            : target_fd == 2 ? options.stderr
+                            : throw "BOOM";
+        if (type == subprocess::io::close) {
+            posix_spawn_file_actions_addclose(&spawn_actions, target_fd);
+            return -1;
+        }
+        else if (type == subprocess::io::open) {
+            int p[2];
+            if(pipe(p))
+                throw "BOOM";
+            if (target_fd == 0) {
+                posix_spawn_file_actions_adddup2(&spawn_actions, p[0], target_fd);
+                posix_spawn_file_actions_addclose(&spawn_actions, p[0]);
+                posix_spawn_file_actions_addclose(&spawn_actions, p[1]);
+                return p[1];
+            }
+            else {
+                posix_spawn_file_actions_adddup2(&spawn_actions, p[1], target_fd);
+                posix_spawn_file_actions_addclose(&spawn_actions, p[0]);
+                posix_spawn_file_actions_addclose(&spawn_actions, p[1]);
+                return p[0];
+            }
+        }
+        else {
+            return -1;
+        }
+    }
+    subprocess::subprocess(std::vector<std::string> execute, spawn_options options) {
+        posix_spawn_file_actions_t spawn_actions;
+        posix_spawn_file_actions_init(&spawn_actions);
+        stdin = _setup_subprocess_fd(spawn_actions, options, 0);
+        stdout = _setup_subprocess_fd(spawn_actions, options, 1);
+        stderr = _setup_subprocess_fd(spawn_actions, options, 2);
+
         std::vector<char*> args(execute.size() + 1);
         args[execute.size()] = 0;
         for(size_t i=0; i<execute.size(); ++i)
@@ -18,54 +58,11 @@ namespace uea {
         if(!c_args || execute.size() < 1)
             throw "BOOM";
 
-        pid_t child_pid;
-
         int err = options.use_path ?
-            posix_spawnp(&child_pid, args[0], &spawn_actions, nullptr, c_args, environ)
-          : posix_spawn(&child_pid, args[0], &spawn_actions, nullptr, c_args, environ);
+            posix_spawnp(&pid, args[0], &spawn_actions, nullptr, c_args, environ)
+          : posix_spawn(&pid, args[0], &spawn_actions, nullptr, c_args, environ);
 
         if(err){throw "BOOM";}
-
-        return child_pid;
-    }
-    subprocess spawn(std::vector<std::string> execute, spawn_options options) {
-        posix_spawn_file_actions_t spawn_actions;
-        posix_spawn_file_actions_init(&spawn_actions);
-        posix_spawn_file_actions_addclose(&spawn_actions, 0);
-        posix_spawn_file_actions_addclose(&spawn_actions, 1);
-        posix_spawn_file_actions_addclose(&spawn_actions, 2);
-
-        return { .pid=_spawn(execute, options, spawn_actions) };
-    }
-    subprocess spawn_shared(std::vector<std::string> execute, spawn_options options) {
-        posix_spawn_file_actions_t spawn_actions;
-        posix_spawn_file_actions_init(&spawn_actions);
-
-        return { .pid=_spawn(execute, options, spawn_actions) };
-    }
-    subprocess_piped spawn_piped(std::vector<std::string> execute, spawn_options options) {
-        int stdin[2], stdout[2], stderr[2];
-        if(pipe(stdin) || pipe(stdout) || pipe(stderr))
-            throw "BOOM";
-
-        posix_spawn_file_actions_t spawn_actions;
-        posix_spawn_file_actions_init(&spawn_actions);
-        posix_spawn_file_actions_adddup2(&spawn_actions, stdin[0], 0);
-        posix_spawn_file_actions_addclose(&spawn_actions, stdin[0]);
-        posix_spawn_file_actions_addclose(&spawn_actions, stdin[1]);
-        posix_spawn_file_actions_adddup2(&spawn_actions, stdout[1], 1);
-        posix_spawn_file_actions_addclose(&spawn_actions, stdout[0]);
-        posix_spawn_file_actions_addclose(&spawn_actions, stdout[1]);
-        posix_spawn_file_actions_adddup2(&spawn_actions, stderr[1], 2);
-        posix_spawn_file_actions_addclose(&spawn_actions, stderr[0]);
-        posix_spawn_file_actions_addclose(&spawn_actions, stderr[1]);
-
-        subprocess_piped ret{};
-        ret.pid = _spawn(execute, options, spawn_actions);
-        ret.stdin = stdin[1];
-        ret.stdout = stdout[0];
-        ret.stderr = stderr[0];
-        return ret;
     }
 
     int subprocess::join() {
