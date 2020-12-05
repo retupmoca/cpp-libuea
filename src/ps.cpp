@@ -29,12 +29,14 @@ namespace uea {
                 posix_spawn_file_actions_adddup2(&spawn_actions, p[0], target_fd);
                 posix_spawn_file_actions_addclose(&spawn_actions, p[0]);
                 posix_spawn_file_actions_addclose(&spawn_actions, p[1]);
+                close(p[0]);
                 return p[1];
             }
             else {
                 posix_spawn_file_actions_adddup2(&spawn_actions, p[1], target_fd);
                 posix_spawn_file_actions_addclose(&spawn_actions, p[0]);
                 posix_spawn_file_actions_addclose(&spawn_actions, p[1]);
+                close(p[1]);
                 return p[0];
             }
         }
