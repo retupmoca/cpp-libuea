@@ -1,4 +1,4 @@
-CXXFLAGS = -Iinclude -O2 -g -std=c++2a \
+CXXFLAGS = -I3rdparty/fmt/include -Iinclude -O2 -g -std=c++2a \
 		   -Wall -Wextra -Wconversion -Wextra-semi -Wold-style-cast -Wnon-virtual-dtor -pedantic -pedantic-errors \
 
 PREFIX = /usr/local
@@ -14,8 +14,13 @@ all : lib/libuea.a
 # dependencies for each .cpp file
 **/*.o : include/**/*.hpp
 
-lib/libuea.a : $(OBJECTS)
-	$(AR) rvs lib/libuea.a $(OBJECTS)
+lib/libuea.a : 3rdparty/fmt/libfmt.a $(OBJECTS)
+	pushd 3rdparty/fmt/ && $(AR) x libfmt.a && popd
+	$(AR) rvs lib/libuea.a $(OBJECTS) 3rdparty/fmt/*.o
+	pushd 3rdparty/fmt/ && rm *.o && popd
+
+3rdparty/fmt/libfmt.a :
+	pushd 3rdparty/fmt/ && cmake . && make fmt && popd
 
 .PHONY : install
 install :
@@ -27,3 +32,4 @@ install :
 .PHONY : clean
 clean :
 	rm -f src/*o lib/*a
+	pushd 3rdparty/fmt && make clean && popd
