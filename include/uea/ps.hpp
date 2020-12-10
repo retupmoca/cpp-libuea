@@ -1,6 +1,9 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <optional>
+
+#include <uea/io.hpp>
 
 namespace uea {
     struct subprocess {
@@ -19,9 +22,9 @@ namespace uea {
         subprocess(std::vector<std::string> execute, spawn_options options);
 
         pid_t pid;
-        int stdin = -1;
-        int stdout = -1;
-        int stderr = -1;
+        std::optional<fd> stdin;
+        std::optional<fd> stdout;
+        std::optional<fd> stderr;
 
         int join();
     };

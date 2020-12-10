@@ -1,8 +1,57 @@
 #include "uea/io.hpp"
 #include <iostream>
 
+#include <unistd.h>
+#include <fcntl.h>
+
 namespace __glob {
 #include <glob.h>
+}
+
+namespace uea {
+    fd stdin{0};
+    fd stdout{1};
+    fd stderr{2};
+
+    std::array<fd, 2> fd::make_pipe() {
+        int fds[2];
+        pipe2(fds, O_CLOEXEC);
+        return {fd{fds[0]}, fd{fds[1]}};
+    }
+
+    fd::fd(int fd) : _fd{fd} {}
+    fd::fd(const fd& from) {
+        _fd = fcntl(from._fd, F_DUPFD_CLOEXEC, 0);
+    }
+    fd::fd(fd&& from) : _fd{from._fd} {
+        from._fd = -1;
+    }
+    fd::~fd() {
+        if (*this)
+            close(_fd);
+    }
+    fd& fd::operator =(const fd& from) {
+        if (*this)
+            close(_fd);
+        _fd = fcntl(from._fd, F_DUPFD_CLOEXEC, 0);
+        return *this;
+    }
+
+    fd::operator bool() {
+        return _fd > -1;
+    }
+
+    // TODO: implementations that are less terrible
+    void fd::print(std::string data) {
+        write(_fd, data.c_str(), data.size());
+    }
+    std::string fd::getline() {
+        std::string out;
+        char c;
+        while((read(_fd, &c, 1) > 0) && c != '\n')
+            out += c;
+        return out;
+    }
 }
 
 namespace uea {

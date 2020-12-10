@@ -8,63 +8,35 @@
 extern char **environ;
 
 namespace uea {
-    struct _pipefds {
-        int read;
-        int write;
-    };
-    static _pipefds _setup_subprocess_fd(
-        posix_spawn_file_actions_t &spawn_actions,
-        subprocess::spawn_options options,
-        int target_fd
-    ) {
-        subprocess::io type = target_fd == 0 ? options.stdin
-                            : target_fd == 1 ? options.stdout
-                            : target_fd == 2 ? options.stderr
-                            : throw "BOOM";
-        if (type == subprocess::io::close) {
-            posix_spawn_file_actions_addclose(&spawn_actions, target_fd);
-            return {-1, -1};
-        }
-        else if (type == subprocess::io::open) {
-            int p[2];
-            if(pipe(p))
-                throw "BOOM";
-            if (target_fd == 0) {
-                posix_spawn_file_actions_adddup2(&spawn_actions, p[0], target_fd);
-                posix_spawn_file_actions_addclose(&spawn_actions, p[0]);
-                posix_spawn_file_actions_addclose(&spawn_actions, p[1]);
-                return {p[0], p[1]};
-            }
-            else {
-                posix_spawn_file_actions_adddup2(&spawn_actions, p[1], target_fd);
-                posix_spawn_file_actions_addclose(&spawn_actions, p[0]);
-                posix_spawn_file_actions_addclose(&spawn_actions, p[1]);
-                return {p[0], p[1]};
-            }
-        }
-        else {
-            return {-1, -1};
-        }
-    }
     subprocess::subprocess(std::vector<std::string> execute, spawn_options options) {
         posix_spawn_file_actions_t spawn_actions;
         posix_spawn_file_actions_init(&spawn_actions);
-        std::vector<int> closefds;
-        _pipefds tmp;
-        tmp = _setup_subprocess_fd(spawn_actions, options, 0);
-        if(tmp.read >= 0) {
-            closefds.push_back(tmp.read);
-            stdin = tmp.write;
+
+        std::optional<std::array<fd, 2>> tmp_stdin;
+        if (options.stdin == io::close)
+            posix_spawn_file_actions_addclose(&spawn_actions, 0);
+        else if (options.stdin == io::open) {
+            tmp_stdin = fd::make_pipe();
+            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdin->at(0)._fd, 0);
+            stdin = tmp_stdin->at(1);
         }
-        tmp = _setup_subprocess_fd(spawn_actions, options, 1);
-        if(tmp.read >= 0) {
-            closefds.push_back(tmp.write);
-            stdout = tmp.read;
+
+        std::optional<std::array<fd, 2>> tmp_stdout;
+        if (options.stdout == io::close)
+            posix_spawn_file_actions_addclose(&spawn_actions, 1);
+        else if (options.stdout == io::open) {
+            tmp_stdout = fd::make_pipe();
+            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdout->at(1)._fd, 1);
+            stdout = tmp_stdout->at(0);
         }
-        tmp = _setup_subprocess_fd(spawn_actions, options, 2);
-        if(tmp.read >= 0) {
-            closefds.push_back(tmp.write);
-            stderr = tmp.read;
+
+        std::optional<std::array<fd, 2>> tmp_stderr;
+        if (options.stderr == io::close)
+            posix_spawn_file_actions_addclose(&spawn_actions, 2);
+        else if (options.stdout == io::open) {
+            tmp_stderr = fd::make_pipe();
+            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stderr->at(1)._fd, 2);
+            stderr = tmp_stderr->at(0);
         }
 
         std::vector<char*> args(execute.size() + 1);
@@ -79,9 +51,6 @@ namespace uea {
         int err = options.use_path ?
             posix_spawnp(&pid, args[0], &spawn_actions, nullptr, c_args, environ)
           : posix_spawn(&pid, args[0], &spawn_actions, nullptr, c_args, environ);
-
-        for (auto fd : closefds)
-            close(fd);
 
         if(err){throw "BOOM";}
     }

@@ -4,6 +4,29 @@
 #include <string>
 
 namespace uea {
+    struct fd {
+        static std::array<fd, 2> make_pipe();
+
+        fd(int fd);
+        fd(const fd& from);
+        fd(fd&& from);
+        ~fd();
+        fd& operator =(const fd& from);
+
+        explicit operator bool();
+
+        std::string getline();
+        void print(std::string data);
+
+        int _fd;
+    };
+
+    extern fd stdin;
+    extern fd stdout;
+    extern fd stderr;
+}
+
+namespace uea {
     struct color_t {
         bool enabled;
 
