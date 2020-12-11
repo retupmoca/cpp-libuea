@@ -17,6 +17,7 @@ namespace uea {
 
         std::string getline();
         void print(std::string data);
+        void close();
 
         int _fd;
     };

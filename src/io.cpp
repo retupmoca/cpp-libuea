@@ -28,11 +28,11 @@ namespace uea {
     }
     fd::~fd() {
         if (*this)
-            close(_fd);
+            close();
     }
     fd& fd::operator =(const fd& from) {
         if (*this)
-            close(_fd);
+            close();
         _fd = fcntl(from._fd, F_DUPFD_CLOEXEC, 0);
         return *this;
     }
@@ -51,6 +51,12 @@ namespace uea {
         while((read(_fd, &c, 1) > 0) && c != '\n')
             out += c;
         return out;
+    }
+    void fd::close() {
+        if (*this) {
+            ::close(_fd);
+            _fd = -1;
+        }
     }
 }
 
