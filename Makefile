@@ -1,11 +1,12 @@
 CXXFLAGS = -I3rdparty/fmt/include -Iinclude -O2 -g -std=c++2a \
-		   -Wall -Wextra -Wconversion -Wextra-semi -Wold-style-cast -Wnon-virtual-dtor -pedantic -pedantic-errors \
+		   -Wall -Wextra -Wconversion -Wextra-semi -Wold-style-cast -Wnon-virtual-dtor \
+		   -pedantic -pedantic-errors
 
 PREFIX = /usr/local
 DESTDIR = ""
 LIBDIR = lib
 
-OBJECTS = src/io.o src/ps.o
+OBJECTS = src/io.o src/ps.o src/user.o
 
 .PHONY : all
 all : lib/libuea.a
