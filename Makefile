@@ -6,7 +6,7 @@ PREFIX = /usr/local
 DESTDIR = ""
 LIBDIR = lib
 
-OBJECTS = src/io.o src/ps.o src/user.o
+OBJECTS = src/io.o src/ps.o src/user.o src/string.o
 
 .PHONY : all
 all : lib/libuea.a

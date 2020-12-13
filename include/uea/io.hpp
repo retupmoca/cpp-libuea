@@ -5,7 +5,8 @@
 
 namespace uea {
     struct fd {
-        static std::array<fd, 2> make_pipe();
+        static fd open_file(std::string path);
+        static std::array<fd, 2> open_pipe();
 
         fd(int fd);
         fd(const fd& from);

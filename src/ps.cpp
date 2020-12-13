@@ -16,7 +16,7 @@ namespace uea {
         if (options.stdin == io::close)
             posix_spawn_file_actions_addclose(&spawn_actions, 0);
         else if (options.stdin == io::open) {
-            tmp_stdin = fd::make_pipe();
+            tmp_stdin = fd::open_pipe();
             posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdin->at(0)._fd, 0);
             stdin = tmp_stdin->at(1);
         }
@@ -25,7 +25,7 @@ namespace uea {
         if (options.stdout == io::close)
             posix_spawn_file_actions_addclose(&spawn_actions, 1);
         else if (options.stdout == io::open) {
-            tmp_stdout = fd::make_pipe();
+            tmp_stdout = fd::open_pipe();
             posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdout->at(1)._fd, 1);
             stdout = tmp_stdout->at(0);
         }
@@ -34,7 +34,7 @@ namespace uea {
         if (options.stderr == io::close)
             posix_spawn_file_actions_addclose(&spawn_actions, 2);
         else if (options.stdout == io::open) {
-            tmp_stderr = fd::make_pipe();
+            tmp_stderr = fd::open_pipe();
             posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stderr->at(1)._fd, 2);
             stderr = tmp_stderr->at(0);
         }

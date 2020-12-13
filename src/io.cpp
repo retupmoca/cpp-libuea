@@ -13,7 +13,14 @@ namespace uea {
     fd stdout{1};
     fd stderr{2};
 
-    std::array<fd, 2> fd::make_pipe() {
+    fd fd::open_file(std::string path) {
+        int unix_fd = open(path.c_str(), O_RDONLY | O_CLOEXEC);
+        if (unix_fd < 0) {
+            throw "BOOM";
+        }
+        return fd{unix_fd};
+    }
+    std::array<fd, 2> fd::open_pipe() {
         int fds[2];
         pipe2(fds, O_CLOEXEC);
         return {fd{fds[0]}, fd{fds[1]}};
