@@ -28,4 +28,6 @@ namespace uea {
 
         int join();
     };
+
+    std::string pid_exepath(pid_t pid);
 }

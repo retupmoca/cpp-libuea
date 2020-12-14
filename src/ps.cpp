@@ -61,3 +61,12 @@ namespace uea {
         return result.si_status;
     }
 }
+
+namespace uea {
+    std::string pid_exepath(pid_t pid) {
+        // a link path longer than 4k is probably dumb for other reasons
+        char buf[4096];
+        size_t rsize = readlink(fmt::format("/proc/{}/exe", pid).c_str(), buf, 4096);
+        return {buf, rsize};
+    }
+}

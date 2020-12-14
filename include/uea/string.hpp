@@ -27,4 +27,12 @@ namespace uea {
 
         return !result;
     }
+
+    inline bool startswith(std::string prefix, std::string unknown) {
+        return unknown.rfind(prefix, 0) == 0;
+    }
+
+    inline bool endswith(std::string postfix, std::string unknown) {
+        return unknown.find(postfix, unknown.size() - postfix.size()) == unknown.size() - postfix.size();
+    }
 }
