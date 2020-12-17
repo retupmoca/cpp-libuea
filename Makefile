@@ -21,7 +21,7 @@ lib/libuea.a : 3rdparty/fmt/libfmt.a $(OBJECTS)
 	pushd 3rdparty/fmt/ && rm *.o && popd
 
 3rdparty/fmt/libfmt.a :
-	pushd 3rdparty/fmt/ && cmake . && make fmt && popd
+	pushd 3rdparty/fmt/ && cmake . && $(MAKE) fmt && popd
 
 .PHONY : install
 install :
