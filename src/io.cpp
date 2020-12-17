@@ -1,5 +1,4 @@
 #include "uea/io.hpp"
-#include <iostream>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -16,19 +15,22 @@ namespace uea {
     fd fd::open_file(std::string path) {
         int unix_fd = open(path.c_str(), O_RDONLY | O_CLOEXEC);
         if (unix_fd < 0) {
-            throw "BOOM";
+            throw posix_error();
         }
         return fd{unix_fd};
     }
     std::array<fd, 2> fd::open_pipe() {
         int fds[2];
-        pipe2(fds, O_CLOEXEC);
+        if(pipe2(fds, O_CLOEXEC) < 0)
+            throw posix_error();
         return {fd{fds[0]}, fd{fds[1]}};
     }
 
     fd::fd(int fd) : _fd{fd} {}
     fd::fd(const fd& from) {
         _fd = fcntl(from._fd, F_DUPFD_CLOEXEC, 0);
+        if(_fd < 0)
+            throw posix_error();
     }
     fd::fd(fd&& from) : _fd{from._fd} {
         from._fd = -1;
@@ -41,6 +43,8 @@ namespace uea {
         if (*this)
             close();
         _fd = fcntl(from._fd, F_DUPFD_CLOEXEC, 0);
+        if(_fd < 0)
+            throw posix_error();
         return *this;
     }
 
@@ -48,20 +52,40 @@ namespace uea {
         return _fd > -1;
     }
 
-    // TODO: implementations that are less terrible
     void fd::print(std::string data) {
-        write(_fd, data.c_str(), data.size());
+        size_t total = 0;
+
+        while(total < data.size()) {
+            ssize_t written = 0;
+            if((written = write(_fd, data.c_str(), data.size())) < 0)
+                throw posix_error();
+            total += written;
+        }
+    }
+    ssize_t fd::read(char * buf, size_t len) {
+        return ::read(_fd, buf, len);
     }
     std::string fd::getline() {
         std::string out;
-        char c;
-        while((read(_fd, &c, 1) > 0) && c != '\n')
-            out += c;
-        return out;
+
+        while(1) {
+            char c;
+            ssize_t cur = read(&c, 1);
+            if(cur < 0)
+                throw posix_error();
+            else if (cur == 0 && out.size() == 0)
+                throw end_of_file();
+            else if (cur == 0 || c == '\n')
+                return out;
+            else
+                out += c;
+        }
     }
     void fd::close() {
         if (*this) {
-            ::close(_fd);
+            if(::close(_fd) < 0) {
+                throw posix_error();
+            }
             _fd = -1;
         }
     }
@@ -69,13 +93,11 @@ namespace uea {
 
 namespace uea {
     void print(std::string stuff) {
-        std::cout << stuff;
+        stdout.print(stuff);
     }
 
     std::string getline() {
-        std::string input;
-        std::getline(std::cin, input);
-        return input;
+        return stdin.getline();
     }
 
     std::vector<std::string> glob(std::string path) {

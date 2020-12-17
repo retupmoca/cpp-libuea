@@ -17,7 +17,7 @@ namespace uea {
             posix_spawn_file_actions_addclose(&spawn_actions, 0);
         else if (options.stdin == io::open) {
             tmp_stdin = fd::open_pipe();
-            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdin->at(0)._fd, 0);
+            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdin->at(0)._internal_fd(), 0);
             stdin = tmp_stdin->at(1);
         }
 
@@ -26,7 +26,7 @@ namespace uea {
             posix_spawn_file_actions_addclose(&spawn_actions, 1);
         else if (options.stdout == io::open) {
             tmp_stdout = fd::open_pipe();
-            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdout->at(1)._fd, 1);
+            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stdout->at(1)._internal_fd(), 1);
             stdout = tmp_stdout->at(0);
         }
 
@@ -35,7 +35,7 @@ namespace uea {
             posix_spawn_file_actions_addclose(&spawn_actions, 2);
         else if (options.stdout == io::open) {
             tmp_stderr = fd::open_pipe();
-            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stderr->at(1)._fd, 2);
+            posix_spawn_file_actions_adddup2(&spawn_actions, tmp_stderr->at(1)._internal_fd(), 2);
             stderr = tmp_stderr->at(0);
         }
 
@@ -46,16 +46,19 @@ namespace uea {
 
         char ** c_args = &args[0];
         if(!c_args || execute.size() < 1)
-            throw "BOOM";
+            throw std::runtime_error("Invalid call to subprocess");
 
         int err = options.use_path ?
             posix_spawnp(&pid, args[0], &spawn_actions, nullptr, c_args, environ)
           : posix_spawn(&pid, args[0], &spawn_actions, nullptr, c_args, environ);
 
-        if(err){throw "BOOM";}
+        if(err < 0){throw posix_error();}
     }
 
     int subprocess::join() {
+        if(stdin) stdin->close();
+        if(stdout) stdout->close();
+        if(stderr) stderr->close();
         siginfo_t result;
         waitid(P_PID, pid, &result, WEXITED);
         return result.si_status;

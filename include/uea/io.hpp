@@ -4,6 +4,24 @@
 #include <string>
 
 namespace uea {
+    struct posix_error : public std::exception {
+        posix_error() { posix_errno = errno; }
+
+        const char * what() const noexcept override {
+            return strerror(posix_errno);
+        }
+
+        int posix_errno;
+    };
+
+    struct end_of_file : public std::exception {
+        const char * what() const noexcept override {
+            return "End of file";
+        }
+    };
+}
+
+namespace uea {
     struct fd {
         static fd open_file(std::string path);
         static std::array<fd, 2> open_pipe();
@@ -14,12 +32,20 @@ namespace uea {
         ~fd();
         fd& operator =(const fd& from);
 
+        // if you do something dumb like close() this fd
+        // you get to keep both pieces
+        int _internal_fd() { return _fd; }
+
         explicit operator bool();
 
         std::string getline();
         void print(std::string data);
         void close();
 
+        // TODO: not a C api
+        ssize_t read(char * buf, size_t len);
+
+    private:
         int _fd;
     };
 
