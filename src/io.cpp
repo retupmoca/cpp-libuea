@@ -81,6 +81,13 @@ namespace uea {
                 out += c;
         }
     }
+    void fd::for_lines(std::function<void(std::string)> fn) {
+        try {
+            while (1)
+                fn(getline());
+        }
+        catch (end_of_file& eof) {}
+    }
     void fd::close() {
         if (*this) {
             if(::close(_fd) < 0) {

@@ -39,6 +39,7 @@ namespace uea {
         explicit operator bool();
 
         std::string getline();
+        void for_lines(std::function<void(std::string)> fn);
         void print(std::string data);
         void close();
 
