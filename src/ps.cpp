@@ -72,4 +72,23 @@ namespace uea {
         size_t rsize = readlink(fmt::format("/proc/{}/exe", pid).c_str(), buf, 4096);
         return {buf, rsize};
     }
+
+    pid_t pid_parent(pid_t pid) {
+        // use /status - it's line-oriented, so easier to securely parse
+        fd status = fd::open_file(fmt::format("/proc/{}/status", pid));
+        while(1) {
+            auto line = status.getline();
+            if (line.size() > 6 && line.substr(0, 5) == std::string{"PPid:"}) {
+                int pos;
+                for (pos = 5; line.at(pos) == ' '; ++pos)
+                    ;
+                if (line.substr(pos).size()) {
+                    pid_t pid = atoi(line.substr(pos).c_str());
+                    if (pid)
+                        return pid;
+                }
+            }
+        }
+        throw "BOOM";
+    }
 }

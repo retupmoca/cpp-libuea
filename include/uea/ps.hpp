@@ -30,4 +30,5 @@ namespace uea {
     };
 
     std::string pid_exepath(pid_t pid);
+    pid_t pid_parent(pid_t pid);
 }
