@@ -23,7 +23,15 @@ namespace uea {
 
 namespace uea {
     struct fd {
+        struct open_file_options {
+            bool read = true;
+            bool write = false;
+            bool create = false;
+            bool create_only = false;
+            bool truncate = false;
+        };
         static fd open_file(std::string path);
+        static fd open_file(std::string path, open_file_options options);
         static std::array<fd, 2> open_pipe();
 
         fd(int fd);

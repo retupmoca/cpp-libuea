@@ -13,7 +13,26 @@ namespace uea {
     fd stderr{2};
 
     fd fd::open_file(std::string path) {
-        int unix_fd = open(path.c_str(), O_RDONLY | O_CLOEXEC);
+        return open_file(path, {});
+    }
+    fd fd::open_file(std::string path, open_file_options options) {
+        auto flags = O_CLOEXEC;
+
+        if (options.read && options.write)
+            flags |= O_RDWR;
+        else if (options.write)
+            flags |= O_WRONLY;
+        else
+            flags |= O_RDONLY;
+
+        if (options.create)
+            flags |= O_CREAT;
+        if (options.create_only)
+            flags |= O_EXCL;
+        if (options.truncate)
+            flags |= O_TRUNC;
+
+        int unix_fd = open(path.c_str(), flags, 0644);
         if (unix_fd < 0) {
             throw posix_error();
         }
